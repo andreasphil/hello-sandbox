@@ -1,0 +1,14 @@
+# Global mise config inside the sandbox. Keep the versions in line with what
+# the project uses on the host.
+
+[tools]
+node = "lts"
+pnpm = "latest"
+"npm:@playwright/cli" = "latest"
+
+[env]
+NODE_NO_WARNINGS = 1
+PLAYWRIGHT_HTML_OPEN = "never"
+
+# playwright-cli defaults to google chrome, which doesn't exist for linux on arm
+PLAYWRIGHT_MCP_BROWSER = "chromium"

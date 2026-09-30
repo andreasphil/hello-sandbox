@@ -1,0 +1,114 @@
+# Host-side tasks for managing the sandbox. Run them from this folder, e.g.
+# `mise run build`, or from the project root with `mise -C sandbox run build`.
+
+[env]
+# this folder sits in the project it sandboxes
+SANDBOX_REPO = "{{config_root | dirname}}"
+SANDBOX_NAME = "{{config_root | dirname | basename}}-sandbox"
+SANDBOX_CPUS = "4"
+SANDBOX_MEMORY = "8g"
+
+# ports published to 127.0.0.1 on the host, space-separated
+SANDBOX_PORTS = "5173"
+
+# volumes owned by this sandbox as name:path pairs, space-separated. the name
+# gets the sandbox name as a prefix. paths can't contain spaces.
+SANDBOX_VOLUMES = "node-modules:{{config_root | dirname}}/node_modules playwright:/home/developer/.cache/ms-playwright"
+
+# claude config and login, shared by all sandboxes. a folder on the host,
+# because a volume can only be attached to one running container at a time.
+# claude keeps memory per project path, so projects don't mix.
+SANDBOX_CLAUDE_DIR = "{{env.HOME}}/.local/share/sandbox-claude"
+
+[tasks.build]
+description = "Build the sandbox image"
+run = 'container build --tag "$SANDBOX_NAME" .'
+
+[tasks.create]
+description = "Create and start the sandbox container from the image"
+run = """
+  args=()
+  for port in $SANDBOX_PORTS; do
+    args+=(--publish "127.0.0.1:$port:$port")
+  done
+  # container run creates missing volumes itself, but not host folders
+  mkdir -p "$SANDBOX_CLAUDE_DIR"
+  for volume in $SANDBOX_VOLUMES; do
+    args+=(--volume "$SANDBOX_NAME-${volume%%:*}:${volume#*:}")
+  done
+
+  # mount the project at the same path as on the host, so paths in output,
+  # reports and errors match. .git is read-only, so commit on the host.
+  # untrusted mise config in the project would break every mise tool, so
+  # trust it. its tools, env and tasks then work like on the host.
+  container run --detach --init \
+    --name "$SANDBOX_NAME" \
+    --cpus "$SANDBOX_CPUS" \
+    --memory "$SANDBOX_MEMORY" \
+    --workdir "$SANDBOX_REPO" \
+    --env "MISE_TRUSTED_CONFIG_PATHS=$SANDBOX_REPO" \
+    --mount "type=bind,source=$SANDBOX_REPO,target=$SANDBOX_REPO" \
+    --mount "type=bind,source=$SANDBOX_REPO/.git,target=$SANDBOX_REPO/.git,readonly" \
+    --mount "type=bind,source=$SANDBOX_CLAUDE_DIR,target=/home/developer/.claude" \
+    "${args[@]}" \
+    "$SANDBOX_NAME"
+
+  # container can't bind-mount single files, so copy the global gitignore
+  excludes=$(git config --global core.excludesFile || true)
+  if [[ -n "$excludes" ]]; then
+    container cp "${excludes/#\\~/$HOME}" "$SANDBOX_NAME:/home/developer/.gitignore_global"
+  fi
+"""
+
+[tasks.start]
+description = "Start the stopped sandbox container"
+run = 'container start "$SANDBOX_NAME"'
+
+[tasks.stop]
+description = "Stop the sandbox container (keeps its state)"
+run = 'container stop "$SANDBOX_NAME"'
+
+[tasks.shell]
+description = "Open a shell in the sandbox"
+usage = 'flag "--root" help="open a root shell instead of the developer account"'
+run = """
+  user=developer
+  if [[ ${usage_root:-false} == "true" ]]; then
+    echo "🚨 root shell"
+    user=root
+  fi
+  container exec --interactive --tty --user "$user" "$SANDBOX_NAME" bash --login
+"""
+
+[tasks.claude]
+description = "Start Claude Code in the sandbox in auto mode"
+run = """
+  # bypass mode isn't on by default, but you can switch to it with shift+tab
+  container exec --interactive --tty --user developer "$SANDBOX_NAME" \
+    claude --permission-mode auto --allow-dangerously-skip-permissions
+"""
+
+[tasks.delete-container]
+hide = true
+run = """
+  if container inspect "$SANDBOX_NAME" >/dev/null 2>&1; then
+    mise run stop >/dev/null
+    container delete "$SANDBOX_NAME" >/dev/null
+  fi
+"""
+
+[tasks.recreate]
+description = "Delete and recreate the container (keeps volumes)"
+run = ["mise run delete-container", "mise run create"]
+
+[tasks.destroy]
+description = "Delete the container and its volumes (keeps the shared Claude login)"
+confirm = "Delete the sandbox container and its volumes?"
+run = """
+  mise run delete-container
+  for volume in $SANDBOX_VOLUMES; do
+    if container volume inspect "$SANDBOX_NAME-${volume%%:*}" >/dev/null 2>&1; then
+      container volume delete "$SANDBOX_NAME-${volume%%:*}"
+    fi
+  done
+"""

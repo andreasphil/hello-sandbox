@@ -1,90 +1,97 @@
 # Hello Sandbox 🪏
 
-**Experimenting with sandboxing coding agents through Docker**
+**Experimenting with sandboxing coding agents through containers**
 
 > [!CAUTION]
 >
-> Work in progress. Docker-based sandboxing has [limitations](https://www.luiscardoso.dev/blog/sandboxes-for-ai#:~:text=Where%20containers%20fail).
+> Work in progress. Container-based sandboxing has [limitations](https://www.luiscardoso.dev/blog/sandboxes-for-ai#:~:text=Where%20containers%20fail).
 
 The idea:
 
 - ⚖️ Finding a pragmatic balance between productivity and safety
 - 🧯 Basic protection against common risks during development in trusted codebases
 - ⚠️ Not intended to go full YOLO or provide robust protection against targeted attacks
-- 🍱 An environment for agents to operate in to complement your local dev setup, not replace it
+- 🍱 An environment for agents that complements your local dev setup instead of replacing it
 - 🪶 Simple and understandable; complexity is a risk in and of itself
 
-## Status
+## How it works
 
-- [x] core runtimes and package managers: Node 24, PNPM 10, Java 21
-- [x] easy installation of additional packages + task management through [Mise](https://mise.jdx.dev/)
-- [x] supports [Claude Code](https://claude.com/product/claude-code) with configuration mounted from the host for persistence across sessions
-- [x] restricted `developer` account to run agents with generous permissions
-- [x] [Playwright](https://playwright.dev/) + Chromium pre-installed for E2E tests
-- [x] runs frontend dev servers and unit tests
-- [x] runs backend unit tests with Java
-- [x] simple Mise-based setup
-- [ ] directly launch the agent when running the container instead of SSH-ing into it
-- [ ] container-local agent instructions with limitations/specifics of the sandbox
-- [ ] running or connecting to Docker services (required for running backend)
-- [ ] [multiplexer](https://zellij.dev/) for running backend and frontend (required for E2E tests)
-- [ ] ability to run backend integration tests that require [Testcontainers](https://testcontainers.com/)
-- [ ] [Playwright CLI](https://github.com/microsoft/playwright-cli) integration to allow the agent to explore the app
-- [ ] [Context7](https://context7.com/) integration for easy docs access
-- [ ] [`--cap-drop=ALL`](https://docs.docker.com/engine/containers/run/#runtime-privilege-and-linux-capabilities) and [`no-new-privileges`](https://docs.docker.com/reference/cli/docker/container/run/#security-opt)
+There's no one-size-fits-all sandbox here; every project gets its own. This repo is the starting point:
 
-Also considering:
+- [`sandbox/`](./sandbox) is the boilerplate. It has everything a lightweight Node project needs and shows how I like things set up. Its [README](./sandbox/README.md) explains how to use it.
+- [`skill/`](./skill) is a Claude Code skill that builds a sandbox for a project from the boilerplate. It looks around the project, asks about anything it can't figure out on its own, then adapts a copy of the boilerplate and tests it. The agent writes and maintains its [references](./skill/references), which collect what it learned along the way about Docker, Java, 1Password, symlinked config and a bunch of Apple container and mise quirks. The skill pulls them in when a project needs them.
 
-- [ ] separation from the project on the host system, e.g. so `pnpm install` doesn't conflict
-- [ ] using Apple's [container](https://github.com/apple/container) as the engine—this should provide some [security benefits](https://4sysops.com/archives/apple-container-vs-docker-desktop/#:~:text=or%20Macvlan%20drivers.-,Security%20and%20isolation,-Apple%E2%80%99s%20container%20tool)
-- [ ] preparing the Gradle wrapper during the image build to speed up Java tasks
-- [ ] alternative agents such as [OpenCode](https://opencode.ai/) (+ web interface) and [Pi](https://pi.dev/)
-- [ ] better ways of installing project-specific dependencies
-- [ ] reusability accross projects in general
+What you get out of the box:
 
-## Requirements
-
-- [Docker](https://docker.com)
-- [mise](https://mise.jdx.dev)
+- Apple's [container](https://github.com/apple/container) as the engine, so every sandbox is its own VM
+- Ubuntu with [mise](https://mise.jdx.dev), Node, pnpm, [Claude Code](https://claude.com/product/claude-code), [Playwright CLI](https://github.com/microsoft/playwright-cli) and everything Chromium needs
+- The project mounted at the same path as on the host, with `.git` read-only
+- `node_modules` and browsers in volumes, so the sandbox's Linux binaries never overwrite the host's
+- One Claude login for all sandboxes
+- A sandbox-specific `CLAUDE.md` next to the project's own
+- The same tasks everywhere, so I don't have to remember how each project does it: `build`, `create`, `start`, `stop`, `shell`, `claude`, `recreate`, `destroy`
 
 ## Usage
 
-Build the image:
+Link the skill:
 
-```bash
-mise run build
+```sh
+ln -s ~/path/to/hello-sandbox/skill ~/.claude/skills/project-sandbox
 ```
 
-Start a session:
+Then ask Claude to set up a sandbox in a project. When it's done:
 
-```bash
-mise run dev <path/to/project>
-
-# or get more information:
-mise run dev --help
+```sh
+cd sandbox
+mise run build && mise run create
+mise run claude
 ```
 
-When you run `dev` for the first time, an empty Claude folder and config JSON will be created in the current folder. You'll need to login to Claude once inside the container; after that, your session and settings should be saved to the host system.
+Doing it by hand works too. Copy `sandbox/` into the project, add `sandbox` to `.git/info/exclude`, run `mise trust` and set the versions in `mise.sandbox.toml`.
+
+Whenever a project turns up something new, the agent adds it to one of the references.
+
+## Requirements
+
+- Apple [container](https://github.com/apple/container)
+- [mise](https://mise.jdx.dev) and `jq`
+
+## Status
+
+- [x] core runtimes and package managers: Node and pnpm via mise
+- [x] [Claude Code](https://claude.com/product/claude-code) with one login shared across sandboxes
+- [x] restricted `developer` account to run agents with generous permissions
+- [x] [Playwright](https://playwright.dev/) system dependencies pre-installed, browsers on demand
+- [x] [Playwright CLI](https://github.com/microsoft/playwright-cli) so the agent can click through the app
+- [x] frontend dev servers and unit tests, reachable from the host
+- [x] container-local agent instructions that explain the sandbox's limits
+- [x] separate `node_modules` from the host, so `pnpm install` doesn't conflict
+- [x] Apple's [container](https://github.com/apple/container) as the engine
+- [x] Docker services and [Testcontainers](https://testcontainers.com/) inside the sandbox ([reference](./skill/references/docker.md))
+- [x] Java and Gradle ([reference](./skill/references/java-gradle.md))
+- [ ] [Context7](https://context7.com/) for docs lookup
+- [ ] other agents such as [OpenCode](https://opencode.ai/) with its web interface, and [Pi](https://pi.dev/)
+- [ ] restricting network egress
 
 ## Alternatives considered
 
-- **Built-in agent permissions:** Works decently well for my use case, but requires a lot of manual oversight, which is tedious and can lead to decision fatigue. Some models also tend to write a lot of scripts to get things done, which adds a lot of mental overhead when approving tool calls.
+- **Built-in agent permissions:** Works well enough for my use case, but requires a lot of manual oversight. That's tedious and can lead to decision fatigue. Some models also tend to write lots of scripts to get things done, which adds mental overhead when approving tool calls.
 
-- **YOLO:** Some people say that [everything else is security theater anyway](https://mariozechner.at/posts/2025-11-30-pi-coding-agent/#toc_13). Tempting, but surely *any* protection is better than no protection at all.
+- **YOLO:** Some people say that [everything else is security theater anyway](https://mariozechner.at/posts/2025-11-30-pi-coding-agent/#toc_13). Tempting, but surely _any_ protection is better than no protection at all.
 
-- **Claude Code's built-in [sandbox](https://code.claude.com/docs/en/sandboxing):** Promising, but doesn't allow much control over the sandbox, and unfortunately many of the things the agent needs to do don't work from within the sandbox (most notably E2E tests).
+- **Claude Code's built-in [sandbox](https://code.claude.com/docs/en/sandboxing):** Promising, but doesn't allow much control over the sandbox. Unfortunately, many things the agent needs to do also don't work inside it, most notably E2E tests.
 
-- **`sandbox-exec` and friends ([Agent Safehouse](https://agent-safehouse.dev/), [Anthropic Sandbox Runtime](https://github.com/anthropic-experimental/sandbox-runtime)):** The tech behind Claude Code's built-in sandbox—using it directly would offer more flexibility for configuration, but the resulting rulesets are huge and I find them hard to understand and manage.
+- **`sandbox-exec` and friends ([Agent Safehouse](https://agent-safehouse.dev/), [Anthropic Sandbox Runtime](https://github.com/anthropic-experimental/sandbox-runtime)):** The tech behind Claude Code's built-in sandbox. Using it directly would offer more configuration flexibility, but the resulting rulesets are huge, and I find them hard to understand and manage.
 
-- **[Shuru](https://shuru.run/):** Unless I'm misunderstanding, Shuru seems to be more of a low-level tool to be used when building your own agents. For end users, they provide a skill that the agent can use for sandboxing its own commands. That's not a decision I want to leave to the agent though 🤨
+- **[Shuru](https://shuru.run/):** Unless I'm misunderstanding, Shuru is more of a low-level tool for building your own agents. For end users, they provide a skill the agent can use to sandbox its own commands. That's not a decision I want to leave to the agent, though 🤨
 
-- **[Dev Containers](https://code.visualstudio.com/docs/devcontainers/containers):** Pretty much a more user-friendly layer on top of Docker. While I can see the appeal, it adds some indirection and additional tooling dependencies that I'd rather avoid.
+- **[Dev Containers](https://code.visualstudio.com/docs/devcontainers/containers):** Pretty much a more user-friendly layer on top of Docker. While I can see the appeal, it adds indirection and extra tooling dependencies that I'd rather avoid.
 
-- **Mise [task sandboxing](https://mise.jdx.dev/sandboxing.html):** Experimental support for sandboxing tasks. Since you can run anything as a task, this should also allow sandboxing agents. I don't know if it's intended to be used with complex processes though, but worth evaluating.
+- **mise [task sandboxing](https://mise.jdx.dev/sandboxing.html):** Experimental support for sandboxing tasks. Since you can run anything as a task, this should also allow sandboxing agents. I don't know if it's meant for complex processes, but it's worth evaluating.
 
-- **[Docker Sandboxes](https://docs.docker.com/ai/sandboxes/):** Interesting option now that it's no longer tied to Docker Desktop. Early experimental stage for now though; too unreliable for daily use in my testing.
+- **[Docker Sandboxes](https://docs.docker.com/ai/sandboxes/):** Interesting option now that it's no longer tied to Docker Desktop. Still at an early, experimental stage, though, and too unreliable for daily use in my testing.
 
-- **[utm](https://mac.getutm.app/):** Full virtual machine. Certainly works, but comes with significant performance and setup overhead from running an entire operating system.
+- **[UTM](https://mac.getutm.app/):** Full virtual machine. Certainly works, but running an entire operating system comes with significant performance and setup overhead.
 
 Even more: [coi](https://github.com/mensfeld/code-on-incus) (Code on Incus), [Sprites](https://sprites.dev/), [Zerobox](https://github.com/afshinm/zerobox), [nono](https://nono.sh/)
 
