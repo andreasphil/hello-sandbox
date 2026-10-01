@@ -16,20 +16,30 @@ The idea:
 
 ## How it works
 
-There's no one-size-fits-all sandbox here; every project gets its own. This repo is the starting point:
+Every project gets its own sandbox, based on the template in this repo:
 
-- [`sandbox/`](./sandbox) is the boilerplate. It has everything a lightweight Node project needs and shows how I like things set up. Its [README](./sandbox/README.md) explains how to use it.
-- [`skill/`](./skill) is a Claude Code skill that builds a sandbox for a project from the boilerplate. It looks around the project, asks about anything it can't figure out on its own, then adapts a copy of the boilerplate and tests it. The agent writes and maintains its [references](./skill/references), which collect what it learned along the way about Docker, Java, 1Password, symlinked config and a bunch of Apple container and mise quirks. The skill pulls them in when a project needs them.
+- [`sandbox/`](./sandbox) is the boilerplate. It has everything a simple Node project needs, and shows how I like to set up things. Check the [README](./sandbox/README.md) for how to use it.
+
+- [`skill/`](./skill) is a Claude Code skill that builds a sandbox for a project from the boilerplate. It looks around the project, asks about anything it can't figure out on its own, then adapts a copy of the boilerplate and tests it.
+
+The agent writes and maintains its [references](./skill/references), which collect what it learned while building sandboxes for more advanced setups.
 
 What you get out of the box:
 
-- Apple's [container](https://github.com/apple/container) as the engine, so every sandbox is its own VM
-- Ubuntu with [mise](https://mise.jdx.dev), Node, pnpm, [Claude Code](https://claude.com/product/claude-code), [Playwright CLI](https://github.com/microsoft/playwright-cli) and everything Chromium needs
-- The project mounted at the same path as on the host, with `.git` read-only
-- `node_modules` and browsers in volumes, so the sandbox's Linux binaries never overwrite the host's
-- One Claude login for all sandboxes
-- A sandbox-specific `CLAUDE.md` next to the project's own
-- The same tasks everywhere, so I don't have to remember how each project does it: `build`, `create`, `start`, `stop`, `shell`, `claude`, `recreate`, `destroy`
+- Apple's [container](https://github.com/apple/container) as the engine, so [every sandbox is its own VM](https://github.com/apple/container/blob/main/docs/technical-overview.md#how-does-container-run-my-container)
+- Ubuntu with [mise](https://mise.jdx.dev), [Node](https://nodejs.org/en), [pnpm](https://pnpm.io/), [Claude Code](https://claude.com/product/claude-code), [Playwright CLI](https://github.com/microsoft/playwright-cli) and Chromium dependencies
+- The project mounted at the same path as on the host
+- Read-only `.git` and no pushing (unless you add your credentials to the sandbox)
+- Volumes for `node_modules`, browsers, and other package dependencies
+- Shared Claude login between all sandboxes
+- Sandbox-specific `CLAUDE.md` instructions in addition to the project's own
+- A consistent set of tasks for managing the sandbox
+
+## Requirements
+
+- [container](https://github.com/apple/container)
+- [mise](https://mise.jdx.dev)
+- [jq](https://jqlang.org/)
 
 ## Usage
 
@@ -39,22 +49,15 @@ Link the skill:
 ln -s ~/path/to/hello-sandbox/skill ~/.claude/skills/project-sandbox
 ```
 
-Then ask Claude to set up a sandbox in a project. When it's done:
+Then ask Claude to set up a sandbox in a project. By default, the files will be placed in `sandbox/`, and added to your local Git excludes. When it's done:
 
 ```sh
 cd sandbox
-mise run build && mise run create
-mise run claude
+mise run build     # build the image
+mise run create    # create the container
+mise run claude    # launch Claude inside the container
 ```
 
-Doing it by hand works too. Copy `sandbox/` into the project, add `sandbox` to `.git/info/exclude`, run `mise trust` and set the versions in `mise.sandbox.toml`.
-
-Whenever a project turns up something new, the agent adds it to one of the references.
-
-## Requirements
-
-- Apple [container](https://github.com/apple/container)
-- [mise](https://mise.jdx.dev) and `jq`
 
 ## Status
 
@@ -75,7 +78,7 @@ Whenever a project turns up something new, the agent adds it to one of the refer
 
 ## Alternatives considered
 
-- **Built-in agent permissions:** Works well enough for my use case, but requires a lot of manual oversight. That's tedious and can lead to decision fatigue. Some models also tend to write lots of scripts to get things done, which adds mental overhead when approving tool calls.
+- **Built-in agent permissions:** Works well enough for my use case, but requires a lot of manual oversight... tedious and can lead to decision fatigue. Some models also tend to write lots of scripts to get things done, which adds mental overhead when approving tool calls.
 
 - **YOLO:** Some people say that [everything else is security theater anyway](https://mariozechner.at/posts/2025-11-30-pi-coding-agent/#toc_13). Tempting, but surely _any_ protection is better than no protection at all.
 
@@ -87,7 +90,7 @@ Whenever a project turns up something new, the agent adds it to one of the refer
 
 - **[Dev Containers](https://code.visualstudio.com/docs/devcontainers/containers):** Pretty much a more user-friendly layer on top of Docker. While I can see the appeal, it adds indirection and extra tooling dependencies that I'd rather avoid.
 
-- **mise [task sandboxing](https://mise.jdx.dev/sandboxing.html):** Experimental support for sandboxing tasks. Since you can run anything as a task, this should also allow sandboxing agents. I don't know if it's meant for complex processes, but it's worth evaluating.
+- **mise [task sandboxing](https://mise.jdx.dev/sandboxing.html):** Experimental support for sandboxing tasks. Since you can run anything as a task, this should also allow sandboxing agents. I don't know if it's meant for complex processes, but worth looking into.
 
 - **[Docker Sandboxes](https://docs.docker.com/ai/sandboxes/):** Interesting option now that it's no longer tied to Docker Desktop. Still at an early, experimental stage, though, and too unreliable for daily use in my testing.
 
@@ -99,3 +102,4 @@ Even more: [coi](https://github.com/mensfeld/code-on-incus) (Code on Incus), [Sp
 
 - [A field guide to sandboxes for AI](https://www.luiscardoso.dev/blog/sandboxes-for-ai)
 - [Simon Willison on sandboxing](https://simonwillison.net/tags/sandboxing/)
+- [Building Pi, and what makes self-modifying software so fascinating](https://www.youtube.com/watch?v=n5f51gtuGHE)
