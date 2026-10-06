@@ -20,6 +20,7 @@ Build a sandbox for one project: a container the agent works in with generous pe
 Read all files in the boilerplate before you start. In short:
 
 - Ubuntu with mise, Node, pnpm, Claude Code, `playwright-cli`, and the system libraries for Chromium
+- The `playwright-cli` skill in `/etc/claude-code/.claude/skills`, Claude's managed skills folder. Skills for other tools go there too.
 - The project mounted at the same path as on the host. `.git` is mounted read-only.
 - Volumes for `node_modules` and Playwright browsers
 - One Claude config folder on the host (`~/.local/share/sandbox-claude`), shared by all sandboxes, so the user logs in once

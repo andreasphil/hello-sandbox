@@ -58,6 +58,13 @@ RUN curl -fsSL https://mise.run | sh
 COPY --chown=developer:developer mise.sandbox.toml /home/developer/.config/mise/config.toml
 RUN mise install
 
+# skill for playwright-cli. it goes in the managed settings folder, because
+# the shared ~/.claude mount hides anything the image puts there.
+# playwright-cli writes to the current folder, so it writes to a temporary
+# one first.
+RUN mkdir /tmp/skills && cd /tmp/skills \
+  && playwright-cli install --skills
+
 # system libraries for chromium need root. root runs the developer's tools
 # through mise, with a throwaway pnpm store so no root-owned files end up in
 # the developer's home.
@@ -67,6 +74,10 @@ RUN MISE_CONFIG_DIR=/home/developer/.config/mise \
   PNPM_CONFIG_STORE_DIR=/tmp/pnpm-store \
   mise exec -- pnpx playwright install-deps chromium \
   && rm -rf /var/lib/apt/lists/* /tmp/pnpm-store /root/.cache /root/.local
+
+RUN mkdir -p /etc/claude-code/.claude \
+  && mv /tmp/skills/.claude/skills /etc/claude-code/.claude/skills \
+  && rm -rf /tmp/skills
 
 # agent instructions for the sandbox. claude loads them on top of the
 # project's CLAUDE.md

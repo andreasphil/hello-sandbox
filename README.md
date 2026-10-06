@@ -27,7 +27,7 @@ The agent writes and maintains its [references](./skill/references), which colle
 What you get out of the box:
 
 - Apple's [container](https://github.com/apple/container) as the engine, so [every sandbox is its own VM](https://github.com/apple/container/blob/main/docs/technical-overview.md#how-does-container-run-my-container)
-- Ubuntu with [mise](https://mise.jdx.dev), [Node](https://nodejs.org/en), [pnpm](https://pnpm.io/), [Claude Code](https://claude.com/product/claude-code), [Playwright CLI](https://github.com/microsoft/playwright-cli) and Chromium dependencies
+- Ubuntu with [mise](https://mise.jdx.dev), [Node](https://nodejs.org/en), [pnpm](https://pnpm.io/), [Claude Code](https://claude.com/product/claude-code), [Playwright CLI](https://github.com/microsoft/playwright-cli) with its skill, and Chromium dependencies
 - The project mounted at the same path as on the host
 - Read-only `.git` and no pushing (unless you add your credentials to the sandbox)
 - Volumes for `node_modules`, browsers, and other package dependencies

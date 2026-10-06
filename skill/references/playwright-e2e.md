@@ -7,7 +7,7 @@ Applies when the project has Playwright tests, or when the agent needs a browser
 - The build installs Chromium's system libraries as root with `playwright install-deps chromium`. They rarely change between Playwright versions.
 - Browsers aren't in the image. `PLAYWRIGHT_BROWSERS_PATH` points to a volume, so any Playwright version can install its own browser without root, and it survives `recreate`.
 - `PLAYWRIGHT_HTML_OPEN=never` keeps the HTML reporter from trying to open a browser after a test run.
-- `playwright-cli` is installed for exploring the app. `PLAYWRIGHT_MCP_BROWSER=chromium` makes it use Chromium. Its default is Google Chrome, which doesn't exist for Linux on ARM. Install its browser once with `playwright-cli install-browser chromium`.
+- `playwright-cli` is installed for exploring the app. `PLAYWRIGHT_MCP_BROWSER=chromium` makes it use Chromium. Its default is Google Chrome, which doesn't exist for Linux on ARM. Install its browser once with `playwright-cli install-browser chromium`. Its skill is installed as a managed skill.
 
 ## E2E tests
 
