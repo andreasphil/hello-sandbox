@@ -53,10 +53,15 @@ run = """
     "${args[@]}" \
     "$SANDBOX_NAME"
 
-  # container can't bind-mount single files, so copy the global gitignore
-  excludes=$(git config --global core.excludesFile || true)
-  if [[ -n "$excludes" ]]; then
-    container cp "${excludes/#\\~/$HOME}" "$SANDBOX_NAME:/home/developer/.gitignore_global"
+  # container can't bind-mount single files, so copy the global gitignore.
+  # --type=path expands ~, and without core.excludesFile git reads its default
+  # location. piping the content works for symlinks, which `container cp`
+  # copies as links.
+  excludes=$(git config --global --type=path core.excludesFile \
+    || echo "${XDG_CONFIG_HOME:-$HOME/.config}/git/ignore")
+  if [[ -f $excludes ]]; then
+    container exec --interactive --user developer "$SANDBOX_NAME" \
+      sh -c 'mkdir -p ~/.config/git && cat > ~/.config/git/ignore' < "$excludes"
   fi
 """
 

@@ -33,7 +33,7 @@ To see if everything works, ask the agent to start the dev servers. You should t
 | You changed…                                                            | Run                  |
 | ----------------------------------------------------------------------- | -------------------- |
 | `Dockerfile`, `entrypoint.sh`, `mise.sandbox.toml`, `CLAUDE.sandbox.md` | `build` + `recreate` |
-| Ports, volumes or resources in `mise.toml`                              | `recreate`           |
+| Ports, volumes, resources or the `create` task in `mise.toml`           | `recreate`           |
 | Nothing (first time or after `destroy`)                                 | `build` + `create`   |
 
 ## What the sandbox can access

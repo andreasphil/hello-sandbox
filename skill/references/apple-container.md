@@ -12,7 +12,7 @@ Facts and quirks of Apple's `container` CLI, found while building sandboxes. Tes
 
 ## Mounts and volumes
 
-- **Bind mounts must be directories.** Mounting a single file fails with "is not a directory". Copy single files in with `container cp` after `container run`. The boilerplate does this for the global gitignore.
+- **Bind mounts must be directories.** Mounting a single file fails with "is not a directory". Copy single files in after `container run`. `container cp` copies a symlink as a link, which then points nowhere in the container. Pipe the content instead: `container exec --interactive ... sh -c 'cat > <path>' < <file>`. The boilerplate does this for the global gitignore.
 - **Files in bind mounts look root-owned inside the container.** Writes from any user end up owned by the host user. There's no uid mapping to set up. git refuses to work with root-owned repos, so the boilerplate sets `safe.directory '*'`.
 - **Read-only bind mounts are enforced by the host.** Even root in the VM can't write through them, not even after `mount -o remount,rw`.
 - **Don't remount bind mounts.** All bind mounts share one virtiofs superblock. `mount -o remount,ro` on one of them makes every bind mount read-only until the next restart.

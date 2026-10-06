@@ -41,9 +41,9 @@ RUN curl -fsSL https://claude.ai/install.sh | bash
 ENV CLAUDE_CONFIG_DIR="/home/developer/.claude"
 
 # files in bind mounts look root-owned, and git refuses to work with them
-# unless we mark them safe. `mise run create` copies the global gitignore in.
-RUN git config --global safe.directory '*' \
-  && git config --global core.excludesFile /home/developer/.gitignore_global
+# unless we mark them safe. `mise run create` copies the global gitignore to
+# git's default location, ~/.config/git/ignore.
+RUN git config --global safe.directory '*'
 
 # pnpm would otherwise put its store next to the project, which is on the host
 ENV PNPM_CONFIG_STORE_DIR="/home/developer/.local/share/pnpm/store"
