@@ -2,6 +2,7 @@ FROM ubuntu:24.04
 
 SHELL ["/bin/bash", "-o", "pipefail", "-c"]
 
+# without a UTF-8 locale, some tools break on non-ascii filenames, java for one
 ENV LANG=C.UTF-8
 
 # system-level dependencies

@@ -90,7 +90,7 @@ description = "Start Claude Code in the sandbox in auto mode"
 run = """
   # bypass mode isn't on by default, but you can switch to it with shift+tab
   container exec --interactive --tty --user developer "$SANDBOX_NAME" \
-    claude --permission-mode auto --allow-dangerously-skip-permissions
+    claude agents --permission-mode auto --allow-dangerously-skip-permissions
 """
 
 [tasks.delete-container]
