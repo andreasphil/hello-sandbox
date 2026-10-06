@@ -8,7 +8,7 @@ Quirks of mise found while building sandboxes, on the host and inside the contai
   - Docker and Go format strings like `docker ps --format '{{.Names}}'` fail. Use `--format json` and format with `jq` instead.
   - Bash's `${#array[@]}` contains `{#` and breaks. Use a string you append to, or test with `[[ -z ... ]]`.
 - Templates don't work in `[settings]`. For settings that need a path, set the matching `MISE_*` environment variable instead, for example `MISE_IGNORED_CONFIG_PATHS` on `container run`.
-- Useful template values: `{{config_root}}` is the folder of the config file. Path filters work: `{{config_root | dirname}}`, `{{config_root | dirname | basename}}`. `{{env.HOME}}` reads the environment.
+- Useful template values: `{{config_root}}` is the folder of the config file. Path filters work: `{{config_root | dirname}}`, `{{config_root | dirname | basename}}`. `{{env.HOME}}` reads the environment, including variables set earlier in the same `[env]`, like `{{env.SANDBOX_REPO}}/frontend/node_modules`.
 
 ## Paths and symlinks
 

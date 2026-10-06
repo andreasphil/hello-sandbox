@@ -57,7 +57,7 @@ exec dockerd --log-level warn
 - Publish the service ports the user wants to open on the host in `SANDBOX_PORTS`. Services inside the sandbox publish on `0.0.0.0`, so the forwarding works.
 - Images live in the container's filesystem. They survive `stop`/`start`, but `recreate` downloads them again.
 
-Tell the agent in `CLAUDE.sandbox.md` that Docker is available, and how to start the services, like `docker compose up -d --wait` in the project root.
+Tell the agent in `CLAUDE.sandbox.md` that Docker is available, and how to start the services, like `docker compose up -d --wait` in the project root. The boilerplate's `CLAUDE.sandbox.md` says that nothing is running at the start. That's no longer true for services with `restart: unless-stopped`, so reword it: dev servers aren't running, services may be, and the start commands are safe either way.
 
 ## Testcontainers
 
