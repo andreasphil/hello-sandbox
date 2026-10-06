@@ -61,6 +61,7 @@ Then read the references that match what you found:
 | Docker, Compose or Testcontainers                         | `references/docker.md`                     |
 | Java, Gradle or Maven                                     | `references/java-gradle.md`                |
 | Credentials needed for install, build or tests            | `references/secrets-1password.md`          |
+| Tools the user wants that aren't released as packages     | `references/tools-from-git.md`             |
 
 ### 2. Ask the user, once, before you build
 
