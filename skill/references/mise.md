@@ -15,6 +15,10 @@ Quirks of mise found while building sandboxes, on the host and inside the contai
 - `{{config_root}}` resolves symlinks. If the sandbox folder is a symlink, `config_root` is the real folder, not the one inside the project. `cd ..` in a task depends on where the user started, so don't rely on it either. See `symlinked-config.md`.
 - Tasks run in `config_root` by default.
 
+## Confirmations
+
+- Tasks with `confirm`, like `destroy`, fail without a terminal: "task requires confirmation but there was nobody to ask". `mise run destroy --yes` doesn't help, because the flag goes to the task. Use `MISE_YES=1 mise run destroy`.
+
 ## Trust
 
 - mise refuses to load config files it doesn't trust, and that failure breaks every shim, including `node` and `pnpm`. Inside the container, nothing is trusted at first. The boilerplate sets `MISE_TRUSTED_CONFIG_PATHS` to the project, so the project's mise config applies like on the host.
