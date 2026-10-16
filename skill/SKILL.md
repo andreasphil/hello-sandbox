@@ -56,6 +56,7 @@ Then read the references that match what you found:
 | More than one `node_modules` folder                       | `references/multiple-node-modules.md`      |
 | Node or pnpm versions in `package.json`, Playwright tests | `references/versions-from-package-json.md` |
 | Playwright E2E tests                                      | `references/playwright-e2e.md`             |
+| No need for a browser: CLIs, libraries, backends          | `references/no-browser.md`                 |
 | Host-specific settings in the project's mise files        | `references/host-mise-config.md`           |
 | Symlinks to files outside the project                     | `references/symlinked-config.md`           |
 | Docker, Compose or Testcontainers                         | `references/docker.md`                     |
