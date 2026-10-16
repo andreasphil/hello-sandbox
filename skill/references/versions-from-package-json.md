@@ -45,6 +45,10 @@ Some projects fail or warn when versions don't match exactly. For example `devEn
 | `packageManager`                    | `"pnpm@11.20.0+sha512..."`, strip everything from `+`         |
 | `engines.node`                      | often a range like `>=22`, not an exact version: ask the user |
 
+For `packageManager`, `jq` can strip the name and hash: `jq -r '.packageManager | ltrimstr("pnpm@") | split("+")[0]'`.
+
+If `engines.node` is a range and the user doesn't care, pin the host's Node version in `mise.sandbox.toml` and say so in a comment. That's simpler than a build argument for a value that isn't in `package.json` anyway.
+
 Check which `package.json` is the source of truth in monorepos. It may not be the root one.
 
 For Playwright versions, see `playwright-e2e.md`.
