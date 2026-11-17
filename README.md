@@ -16,65 +16,67 @@ The idea:
 
 ## How it works
 
-Every project gets its own sandbox, based on the template in this repo:
+Each project gets its own sandbox in the form of a container.
 
-- [`sandbox/`](./sandbox) is the boilerplate. It has everything a simple Node project needs, and shows how I like to set up things. Check the [README](./sandbox/README.md) for how to use it.
+All sandboxes share a minimal image with Ubuntu, a few system-level dependencies, Docker and prerequisites for Playwright (both optional), and [mise](https://mise.jdx.dev/). Inside each sandbox, mise manages any additional tools.
 
-- [`skill/`](./skill) is a Claude Code skill that builds a sandbox for a project from the boilerplate. It looks around the project, asks about anything it can't figure out on its own, then adapts a copy of the boilerplate and tests it.
+The template consists of:
 
-The agent writes and maintains its [references](./skill/references), which collect what it learned while building sandboxes for more advanced setups.
+| File                | Description                                                    | Shared? |
+| ------------------- | -------------------------------------------------------------- | ------- |
+| `AGENTS.sandbox.md` | Sandbox-specific instructions, copied to `~/.claude/CLAUDE.md` | no      |
+| `Dockerfile`        | Builds the shared image for all sandboxes                      | yes     |
+| `entrypoint.sh`     | Shared entrypoint for all sandboxes                            | yes     |
+| `mise.toml`         | Host-side configuration and tasks for managing a sandbox       | no      |
+| `mise.sandbox.toml` | Global tools, tasks, and setup inside the sandbox              | no      |
 
 What you get out of the box:
 
 - Apple's [container](https://github.com/apple/container) as the engine, so [every sandbox is its own VM](https://github.com/apple/container/blob/main/docs/technical-overview.md#how-does-container-run-my-container)
-- Ubuntu with [mise](https://mise.jdx.dev), [Node](https://nodejs.org/en), [pnpm](https://pnpm.io/), [Claude Code](https://claude.com/product/claude-code), [Playwright CLI](https://github.com/microsoft/playwright-cli) with its skill, and Chromium dependencies
+- Ubuntu with [mise](https://mise.jdx.dev), [Claude Code](https://claude.com/product/claude-code), [Docker](https://www.docker.com/), and Chromium dependencies
 - The project mounted at the same path as on the host
 - Read-only `.git` and no pushing (unless you add your credentials to the sandbox)
-- Volumes for `node_modules`, browsers, and other package dependencies
-- Shared Claude login between all sandboxes
+- Persistent volumes for `home` and Docker images, with the option to add more
 - Sandbox-specific `CLAUDE.md` instructions in addition to the project's own
+- Claude Code credentials from 1Password
 - A consistent set of tasks for managing the sandbox
 
 ## Requirements
 
 - [container](https://github.com/apple/container)
 - [mise](https://mise.jdx.dev)
-- [jq](https://jqlang.org/)
 
 ## Usage
 
-Link the skill:
+To get started, create a `sandbox` directory in your project and copy the template into it. Then customize the template to your needs.
 
-```sh
-ln -s ~/path/to/hello-sandbox/skill ~/.claude/skills/project-sandbox
+> [!TIP]
+>
+> Look for `FIXME:` comments to find the places you'll most likely want to customize.
+
+First, check the `Dockerfile`. It's the shared foundation for all your sandboxes, so add or remove anything you always (or never) need. Then build the image:
+
+```bash
+mise run build
 ```
 
-Then ask Claude to set up a sandbox in a project. By default, the files will be placed in `sandbox/`, and added to your local Git excludes. When it's done:
+Next, create and start the sandbox:
 
-```sh
-cd sandbox
-mise run build     # build the image
-mise run create    # create the container
-mise run claude    # launch Claude inside the container
+```bash
+mise run create
 ```
 
+This creates the container and sets up port bindings and mounts. It then installs the tools from your project's `mise.toml` and bootstraps the sandbox with the `sandbox:setup` task. The sandbox ignores `mise.local.toml`. Once that's done:
 
-## Status
-
-- [x] core runtimes and package managers: Node and pnpm via mise
-- [x] [Claude Code](https://claude.com/product/claude-code) with one login shared across sandboxes
-- [x] restricted `developer` account to run agents with generous permissions
-- [x] [Playwright](https://playwright.dev/) system dependencies pre-installed, browsers on demand
-- [x] [Playwright CLI](https://github.com/microsoft/playwright-cli) so the agent can click through the app
-- [x] frontend dev servers and unit tests, reachable from the host
-- [x] container-local agent instructions that explain the sandbox's limits
-- [x] separate `node_modules` from the host, so `pnpm install` doesn't conflict
-- [x] Apple's [container](https://github.com/apple/container) as the engine
-- [x] Docker services and [Testcontainers](https://testcontainers.com/) inside the sandbox ([reference](./skill/references/docker.md))
-- [x] Java and Gradle ([reference](./skill/references/java-gradle.md))
-- [ ] [Context7](https://context7.com/) for docs lookup
-- [ ] other agents such as [OpenCode](https://opencode.ai/) with its web interface, and [Pi](https://pi.dev/)
-- [ ] restricting network egress
+```bash
+mise run stop       # stop the sandbox
+mise run start      # start the sandbox again
+mise run claude     # start a Claude session in the sandbox
+mise run shell      # open an interactive shell in the sandbox
+mise run build      # rebuild the image after changes to the Dockerfile or entrypoint
+mise run recreate   # recreate the sandbox after configuration changes (volumes persist)
+mise run destroy    # delete the sandbox and its volumes
+```
 
 ## Alternatives considered
 

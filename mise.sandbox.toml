@@ -1,0 +1,30 @@
+# Global sandbox configuration for mise
+# -------------------------------------
+
+[env]
+SANDBOX = 1
+PNPM_CONFIG_STORE_DIR = "{{ env.HOME }}/.local/share/pnpm/store"
+PLAYWRIGHT_MCP_BROWSER = "chromium"
+
+[tools]
+claude = "latest"
+
+[settings]
+disable_backends = ["asdf"]
+unix_default_inline_shell_args = "bash -c -o errexit"
+
+[tasks."sandbox:setup"]
+run = """
+  set -euo pipefail
+
+  # Extra tools
+  mkdir -p ~/.local/bin
+  mise install
+
+  # Sync agent instructions into global settings
+  mkdir -p ~/.claude
+  echo "@${SANDBOX_REPO}/sandbox/AGENTS.sandbox.md" > ~/.claude/CLAUDE.md
+  echo "synced global agent instructions"
+
+  # FIXME: add extra sandbox-specific setup
+"""

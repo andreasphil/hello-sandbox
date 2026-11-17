@@ -1,0 +1,113 @@
+# Host-side configuration and tasks for the sandbox
+# -------------------------------------------------
+
+[vars]
+sandbox_name = "{{ config_root | basename }}-sandbox"
+sandbox_image = "sandbox"
+sandbox_claude_token_ref = "" # FIXME: set or remove
+sandbox_cpus = "8"
+sandbox_docker = "true" # FIXME: set to false if you don't need Docker
+sandbox_memory = "12g"
+sandbox_playwright = "true" # FIXME: set to false if you don't need Playwright
+sandbox_ports = "3000 8080 6006" # FIXME: set to whatever your project needs
+sandbox_readonly = ".git .claude sandbox"
+sandbox_repo = "{{ config_root | dirname }}"
+sandbox_volumes = "home:/home/developer docker:/var/lib/docker" # FIXME: add node_modules etc.
+
+[tasks.build]
+description = "build the sandbox image"
+run = 'container build --tag "{{ vars.sandbox_image }}"'
+
+[tasks.create]
+description = "create a new sandbox from the image"
+run = """
+  args=()
+
+  for port in {{ vars.sandbox_ports }}; do
+    args+=(--publish "127.0.0.1:${port}:${port}")
+  done
+
+  for volume in {{ vars.sandbox_volumes }}; do
+    args+=(--volume "{{ vars.sandbox_name }}-${volume%%:*}:${volume#*:}")
+  done
+
+  for dir in {{ vars.sandbox_readonly }}; do
+    if [[ -d {{ vars.sandbox_repo }}/${dir} ]]; then
+      args+=(--mount "type=bind,source={{ vars.sandbox_repo }}/${dir},target={{ vars.sandbox_repo }}/${dir},readonly")
+    fi
+  done
+
+  if [[ {{ vars.sandbox_docker }} == true ]]; then
+    args+=(--cap-add ALL)
+  fi
+
+  container run --detach --init \
+    --name "{{ vars.sandbox_name }}" \
+    --cpus "{{ vars.sandbox_cpus }}" \
+    --memory "{{ vars.sandbox_memory }}" \
+    --workdir "{{ vars.sandbox_repo }}" \
+    --env "SANDBOX_REPO={{ vars.sandbox_repo }}" \
+    --env "SANDBOX_DOCKER={{ vars.sandbox_docker }}" \
+    --env "SANDBOX_PLAYWRIGHT={{ vars.sandbox_playwright }}" \
+    --env "MISE_GLOBAL_CONFIG_FILE={{ vars.sandbox_repo }}/sandbox/mise.sandbox.toml" \
+    --env "MISE_TRUSTED_CONFIG_PATHS={{ vars.sandbox_repo }}" \
+    --env "MISE_IGNORED_CONFIG_PATHS={{ vars.sandbox_repo }}/mise.local.toml" \
+    --mount "type=bind,source={{ vars.sandbox_repo }},target={{ vars.sandbox_repo }}" \
+    "${args[@]}" \
+    {{ vars.sandbox_image }}
+
+  mise run setup
+"""
+
+[tasks.setup]
+description = "run sandbox-specific setup tasks"
+run = "container exec --user developer {{ vars.sandbox_name }} mise run sandbox:setup"
+
+[tasks.start]
+description = "start the sandbox container"
+run = 'container start {{ vars.sandbox_name }}'
+
+[tasks.stop]
+description = "stop the sandbox container"
+run = 'container stop --time 30 {{ vars.sandbox_name }}'
+
+[tasks.delete]
+hide = true
+run = """
+  if container inspect "{{ vars.sandbox_name }}" >/dev/null 2>&1; then
+    mise run stop >/dev/null
+    container delete {{ vars.sandbox_name }} >/dev/null
+  fi
+"""
+
+[tasks.recreate]
+description = "recreate the sandbox (keeps volumes)"
+run = ["mise run delete", "mise run create"]
+
+[tasks.destroy]
+description = "delete the sandbox and its volumes"
+confirm = "Delete {{ vars.sandbox_name }} and its volumes?"
+run = """
+  mise run delete
+  for volume in {{ vars.sandbox_volumes }}; do
+    if container volume inspect "{{ vars.sandbox_name }}-${volume%%:*}" >/dev/null 2>&1; then
+      container volume delete "{{ vars.sandbox_name }}-${volume%%:*}"
+    fi
+  done
+"""
+
+[tasks.shell]
+description = "launch a shell session in the sandbox container"
+run = 'container exec -it --user developer {{ vars.sandbox_name }} bash --login'
+
+[tasks.claude]
+description = "launch a claude session in the sandbox container"
+run = """
+  token=$(op read "{{ vars.sandbox_claude_token_ref }}")
+
+  CLAUDE_CODE_OAUTH_TOKEN="${token}" container exec -it \
+    --user developer \
+    --env CLAUDE_CODE_OAUTH_TOKEN \
+    {{ vars.sandbox_name }} \
+    mise exec -- claude agents --permission-mode auto --allow-dangerously-skip-permissions
+"""
