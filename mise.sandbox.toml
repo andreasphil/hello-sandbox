@@ -9,6 +9,7 @@ _.file = { path = "{{ env.SANDBOX_REPO}}/sandbox/.env.sandbox", redact = true }
 
 [tools]
 claude = "latest"
+github-cli = "latest"
 
 [settings]
 disable_backends = ["asdf"]
