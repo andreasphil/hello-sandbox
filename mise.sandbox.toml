@@ -5,6 +5,7 @@
 SANDBOX = 1
 PNPM_CONFIG_STORE_DIR = "{{ env.HOME }}/.local/share/pnpm/store"
 PLAYWRIGHT_MCP_BROWSER = "chromium"
+_.file = { path = "{{ env.SANDBOX_REPO}}/sandbox/.env.sandbox", redact = true }
 
 [tools]
 claude = "latest"

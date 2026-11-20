@@ -24,6 +24,7 @@ The template consists of:
 
 | File                | Description                                                    | Shared? |
 | ------------------- | -------------------------------------------------------------- | ------- |
+| `.env.sandbox`      | Sandbox-specific, local (uncommitted) environment variables    | no      |
 | `AGENTS.sandbox.md` | Sandbox-specific instructions, copied to `~/.claude/CLAUDE.md` | no      |
 | `Dockerfile`        | Builds the shared image for all sandboxes                      | yes     |
 | `entrypoint.sh`     | Shared entrypoint for all sandboxes                            | yes     |
@@ -38,8 +39,12 @@ What you get out of the box:
 - Read-only `.git` and no pushing (unless you add your credentials to the sandbox)
 - Persistent volumes for `home` and Docker images, with the option to add more
 - Sandbox-specific `CLAUDE.md` instructions in addition to the project's own
-- Claude Code credentials from 1Password
+- Claude Code credentials from 1Password, local `.env` file for secret-ish* values
 - A consistent set of tasks for managing the sandbox
+
+> [!WARNING]
+>
+> (*) `.env` files are not suitable for actual secrets. Use as a convenience for public tokens you don't necessarily want to broadcast, but that wouldn't cause much harm if leaked either.
 
 ## Requirements
 
